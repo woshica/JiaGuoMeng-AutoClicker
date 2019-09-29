@@ -1,6 +1,6 @@
 import json, time
 
-epicBuildings = [2, 5, 6, 7]                        #定义了史诗级建筑的存在情况。在当前情况下，工业区的三个建筑是史诗级的。
+epicBuildings = [1, 2, 3, 5, 6, 7]                        #定义了史诗级建筑的存在情况。在当前情况下，工业区的三个建筑是史诗级的。
 buildingsNeedUpgrade = [8]                          #定义了需要升级的建筑（可以有多个）
 
 
@@ -171,7 +171,7 @@ def autoTrainYellowOnly(upgradeBuildings = buildingsNeedUpgrade):
         timer = 0                               #新建一个计时器，用来插入收集硬币事件集
         for position in pos["trainPos"]:        #对每个火车货物的位置进行循环
             for j, i in enumerate(pos["buildingPos"]):  #对每个建筑的位置进行循环
-                if (not pos["yellowPos"].count(j)):   #如果对应的位置不是史诗级建筑，跳过
+                if (not epicBuildings.count(j)):   #如果对应的位置不是史诗级建筑，跳过
                     continue
                 newMission.move(position, i)    #新建一个从货物位置拖拽到建筑位置的事件
                 newMission.wait(moveInterval)   #等待
