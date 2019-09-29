@@ -3,7 +3,7 @@
 生成的脚本可以实现：自动将火车上的史诗级货物拖拽到对应的建筑物上，同时每秒收集一次金币，同时每隔一段时间升级由玩家指定的一个或几个建筑。你也可以通过修改py文件，轻松地实现自定义脚本的功能。
 ## 用法
 1. 下载并安装python3，链接https://www.python.org/getit/
-2. 编辑`JiaGuoMeng.py`，用python运行，得到json脚本
+2. 编辑`JiaGuoMeng.py`，在根目录用python运行，得到json脚本
 3. 下载并安装蓝叠模拟器国际版，链接https://www.bluestacks.com/
 4. 在模拟其中安装《家国梦》，按Ctrl+Shift+7，呼出脚本录制器
 5. 点击输入，导入之前生成的json脚本
