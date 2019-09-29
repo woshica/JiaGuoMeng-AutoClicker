@@ -1,8 +1,7 @@
 import json, time
+from os import makedirs
 import sys, argparse
 
-epicBuildings = []                        #定义了史诗级建筑的存在情况。
-buildingsNeedUpgrade = []                 #定义了需要升级的建筑（可以有多个）
 
 
 
@@ -110,7 +109,11 @@ class Mission():
         }
         j = json.dumps(js, indent=4, separators=(',', ': '))
         # print(j)
-        a = open("output\\" + name + ".json", "w")
+        try:
+            a = open("output\\" + name + ".json", "w")
+        except FileNotFoundError:
+            makedirs("output")
+            a = open("output\\" + name + ".json", "w")
         a.write(j)
 
 #以下是一些已经实现的json生成流程。
@@ -125,7 +128,8 @@ def autoCollect():
     j = newMission.generateJson("自动收取硬币", "S")     #生成json文件
     return j
 
-def autoUpgrade(upgradeBuildings = buildingsNeedUpgrade):
+def autoUpgrade(upgradeBuildings):
+    
     """
     自动收取硬币+自动升级。
     upgradeBuildings中的参数是需要升级的建筑，可以填写多个。
@@ -140,7 +144,7 @@ def autoUpgrade(upgradeBuildings = buildingsNeedUpgrade):
     j = newMission.generateJson("自动升级建筑", "U")
     return j
 
-def autoTrain(upgradeBuildings = buildingsNeedUpgrade):
+def autoTrain(upgradeBuildings):
     """
     自动收货+自动收取硬币+自动升级。收集所有火车。
     upgradeBuildings中的参数是需要升级的建筑，可以填写多个。
@@ -160,7 +164,7 @@ def autoTrain(upgradeBuildings = buildingsNeedUpgrade):
     j = newMission.generateJson("自动火车发货", "T")
     return j
 
-def autoTrainYellowOnly(upgradeBuildings = buildingsNeedUpgrade):
+def autoTrainYellowOnly(upgradeBuildings, epicBuildings):
     """
     自动收货+自动收取硬币+自动升级。只收史诗级建筑的火车。
     upgradeBuildings中的参数是需要升级的建筑，可以填写多个。
@@ -200,10 +204,10 @@ if __name__ == '__main__':
     epicBuildings = args.epicId
     buildingsNeedUpgrade = args.lvup
     if args.yellow_only:
-        autoTrainYellowOnly()
+        autoTrainYellowOnly(args.lvup, args.epicId)
     elif args.train:
-        autoTrain()
+        autoTrain(args.lvup)
     elif len(buildingsNeedUpgrade):
-        autoUpgrade()
+        autoUpgrade(args.lvup)
     else:
         autoCollect()
