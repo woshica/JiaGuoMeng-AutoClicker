@@ -185,8 +185,6 @@ def autoTrainYellowOnly(upgradeBuildings = buildingsNeedUpgrade):
 
 
 if __name__ == '__main__':
-
-
     autoTrainYellowOnly()
     autoTrain()
     autoCollect()
