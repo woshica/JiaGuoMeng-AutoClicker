@@ -2,9 +2,10 @@
 用来生成游戏《家国梦》的自动点击脚本的Python代码。生成的.json格式的脚本文件可以用于BlueStacks安卓模拟器中。
 生成的脚本可以实现：自动将火车上的史诗级货物拖拽到对应的建筑物上，同时每秒收集一次金币，同时每隔一段时间升级由玩家指定的一个或几个建筑。你也可以通过修改py文件，轻松地实现自定义脚本的功能。
 ## 用法
+0. 点击页面右上方的绿色“Clone or download”按钮，选择Download Zip，下载zip包并解压。
 1. 下载并安装python3，链接https://www.python.org/getit/
 ，并确保python被添加到了系统的path路径中
-2. 在根目录下打开cmd或者其它命令行，先运行
+2. 在根目录下（打开解压zip后生成的文件夹）打开cmd或者其它命令行，先运行
 `python JiaGuoMeng.py -h`
 阅读帮助信息后根据个人需求进行参数调整。json输出文件在output子目录。
 3. 下载并安装蓝叠模拟器国际版，链接https://www.bluestacks.com/
