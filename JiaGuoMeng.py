@@ -1,7 +1,8 @@
 import json, time
+import sys, argparse
 
-epicBuildings = [1, 2, 3, 5, 6, 7]                        #定义了史诗级建筑的存在情况。在当前情况下，工业区的三个建筑是史诗级的。
-buildingsNeedUpgrade = [8]                          #定义了需要升级的建筑（可以有多个）
+epicBuildings = []                        #定义了史诗级建筑的存在情况。
+buildingsNeedUpgrade = []                 #定义了需要升级的建筑（可以有多个）
 
 
 
@@ -108,7 +109,7 @@ class Mission():
             "ShortCut": shortCut
         }
         j = json.dumps(js, indent=4, separators=(',', ': '))
-        print(j)
+        # print(j)
         a = open("output\\" + name + ".json", "w")
         a.write(j)
 
@@ -185,7 +186,24 @@ def autoTrainYellowOnly(upgradeBuildings = buildingsNeedUpgrade):
 
 
 if __name__ == '__main__':
-    autoTrainYellowOnly()
-    autoTrain()
-    autoCollect()
-    autoUpgrade()
+    parser = argparse.ArgumentParser(description='输入史诗建筑位置和需要升级的建筑。输出文件在output子目录。')
+    parser.add_argument('-epicId', metavar='N', type=int, nargs='+',
+                        help='史实建筑的位置')
+    parser.add_argument('-lvup', metavar='N', type=int, nargs='+',
+                        help='要升级建筑的位置')
+    parser.add_argument('--train',action='store_true',
+                        help="收取火车货物")
+    parser.add_argument('--yellow-only',action='store_true',
+                        help="只收取黄色货物")
+    args = parser.parse_args()
+
+    epicBuildings = args.epicId
+    buildingsNeedUpgrade = args.lvup
+    if args.yellow_only:
+        autoTrainYellowOnly()
+    elif args.train:
+        autoTrain()
+    elif len(buildingsNeedUpgrade):
+        autoUpgrade()
+    else:
+        autoCollect()
