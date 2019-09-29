@@ -1,12 +1,30 @@
-
 import json, time
 
-moveInterval = 150 #定义了鼠标移动时各个事件间需要等待的时间（毫秒）
-clickInterval = 20 #定义了两次鼠标点击事件间需要等待的时间
-upgradeInterval = 300 #定义了
-initialTime = 500 #定义了脚本在初始时需要等待的时间
-allEvents = ["MouseDown", "MouseMove", "MouseUp"] #定义了各个事件的名称
+epicBuildings = [2, 5, 6, 7]                        #定义了史诗级建筑的存在情况。在当前情况下，工业区的三个建筑是史诗级的。
+buildingsNeedUpgrade = [8]                          #定义了需要升级的建筑（可以有多个）
 
+
+
+moveInterval = 150                                  #定义了鼠标移动时各个事件间需要等待的时间（毫秒）
+clickInterval = 20                                  #定义了两次鼠标点击事件间需要等待的时间
+upgradeInterval = 300                               #定义了升级建筑时点击事件间需要等待的时间
+initialTime = 500                                   #定义了脚本在初始时需要等待的时间
+allEvents = ["MouseDown", "MouseMove", "MouseUp"]   #定义了各个事件的名称
+pos = {
+    "buildingPos" : #定义了建筑的位置
+        [
+            (26.76, 61.07), (51.46, 55.58), (72.26, 48.25),
+            (30.9, 51.81), (53.77, 44.35), (73.84, 35.92),
+            (26.52, 35.06), (51.09, 27.69), (74.14, 21.25)
+        ],
+    "trainPos" : #定义了火车上的三个货物的位置
+        [(61.44, 85.01), (77.13, 81.52), (89.78, 76.87)],
+    "otherPos" : #定义了开启建筑编辑界面按钮以及升级按钮的位置
+        {
+            "openUpgrade" : (90.88, 60.22),
+            "upgrade" : (78.18, 89.43)
+        }
+}
 
 class Mission():
     '''
@@ -94,27 +112,7 @@ class Mission():
         a = open("output\\" + name + ".json", "w")
         a.write(j)
 
-pos = {
-    "buildingPos" : #定义了建筑的位置。
-        [ 
-            (28.45, 63.42), (49.73, 54.69), (75.29, 48.74), #住宅区，从左往右。
-            (24.92, 49.82), (54.12, 43.74), (77.97, 37.42), #商业区
-            (26.63, 37.18), (49.3, 29.3), (75.94, 21.84) #工业区
-        ],
-    "yellowPos" : #定义了史诗级建筑的存在情况。pos["buildingPos"][i-1]对应的位置的建筑是史诗级的。
-        [ 
-            3, 6, 7, 8
-        ],
-    "trainPos" : #定义了火车上的三个货物的位置。
-        [(61.44, 85.01), (77.13, 81.52), (89.78, 76.87)],
-    "otherPos" : 
-        {
-            "openUpgrade" : (90.88, 60.22),
-            "upgrade" : (78.18, 89.43)
-        }
-}
-
-#以下是一些已经实现的
+#以下是一些已经实现的json生成流程。
 
 def autoCollect():
     """
@@ -123,10 +121,10 @@ def autoCollect():
     newMission = Mission()          #新建一个Mission对象
     newMission.wait(500)            #等待500毫秒
     newMission.collectCoins()       #新建一个收集硬币事件集
-    j = newMission.generateJson("自动收取硬币", "")     #生成json文件
+    j = newMission.generateJson("自动收取硬币", "S")     #生成json文件
     return j
 
-def autoUpgrade(*upgradeBuildings):
+def autoUpgrade(upgradeBuildings = buildingsNeedUpgrade):
     """
     自动收取硬币+自动升级。
     upgradeBuildings中的参数是需要升级的建筑，可以填写多个。
@@ -137,19 +135,19 @@ def autoUpgrade(*upgradeBuildings):
         for i in range(10):
             newMission.wait(500)
             newMission.collectCoins()
-        newMission.upgrade(everybuilding - 1)
-    j = newMission.generateJson("自动升级建筑", "")
+        newMission.upgrade(everybuilding)
+    j = newMission.generateJson("自动升级建筑", "U")
     return j
 
-def autoTrain(*upgradeBuildings):
+def autoTrain(upgradeBuildings = buildingsNeedUpgrade):
     """
-    自动收货+自动收取硬币+自动升级。
+    自动收货+自动收取硬币+自动升级。收集所有火车。
     upgradeBuildings中的参数是需要升级的建筑，可以填写多个。
     """
     newMission = Mission()
     newMission.collectCoins()
     for everybuilding in upgradeBuildings:
-        newMission.upgrade(everybuilding - 1)
+        newMission.upgrade(everybuilding)
         timer = 0
         for position in pos["trainPos"]:
             for i in pos["buildingPos"]:
@@ -158,10 +156,10 @@ def autoTrain(*upgradeBuildings):
                 newMission.wait(moveInterval)
                 if (timer % 2 == 0):
                     newMission.collectCoins()
-    j = newMission.generateJson("自动火车发货", "")
+    j = newMission.generateJson("自动火车发货", "T")
     return j
 
-def autoTrainYellowOnly(*upgradeBuildings):
+def autoTrainYellowOnly(upgradeBuildings = buildingsNeedUpgrade):
     """
     自动收货+自动收取硬币+自动升级。只收史诗级建筑的火车。
     upgradeBuildings中的参数是需要升级的建筑，可以填写多个。
@@ -169,7 +167,7 @@ def autoTrainYellowOnly(*upgradeBuildings):
     newMission = Mission()                      #新建一个Mission类的对象
     newMission.collectCoins()                   #新建一个收集硬币事件集。
     for everybuilding in upgradeBuildings:      #根据需要升级的建筑循环
-        newMission.upgrade(everybuilding - 1)   #新建一个升级对应建筑的事件集
+        newMission.upgrade(everybuilding)   #新建一个升级对应建筑的事件集
         timer = 0                               #新建一个计时器，用来插入收集硬币事件集
         for position in pos["trainPos"]:        #对每个火车货物的位置进行循环
             for j, i in enumerate(pos["buildingPos"]):  #对每个建筑的位置进行循环
@@ -182,12 +180,14 @@ def autoTrainYellowOnly(*upgradeBuildings):
                 if (timer % 2 == 0):            
                     newMission.collectCoins()
 
-    j = newMission.generateJson("自动火车发货(仅黄色)", "")
+    j = newMission.generateJson("自动火车发货(仅黄色)", "Y")
     return j
 
 
 if __name__ == '__main__':
-    autoTrainYellowOnly(9)
-    autoTrain(9)
+
+
+    autoTrainYellowOnly()
+    autoTrain()
     autoCollect()
-    autoUpgrade(9)
+    autoUpgrade()
