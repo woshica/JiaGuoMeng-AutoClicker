@@ -23,7 +23,9 @@ pos = {
         {
             "openUpgrade" : (90.88, 60.22),
             "upgrade" : (78.18, 89.43)
-        }
+        },
+    "lightPos" : #定义了空白点的位置（用来关闭家国之光弹窗）
+        (50.00, 80.00)
 }
 
 class Mission():
@@ -70,7 +72,9 @@ class Mission():
         self.currentTime += time
 
     def collectCoins(self):
-        '''收集所有建筑的金币'''
+        '''关闭家国之光弹窗并收集所有建筑的金币'''
+        self.click(pos["lightPos"])
+        self.wait(clickInterval)
         for i in pos["buildingPos"]:
             self.click(i)
             self.wait(clickInterval)
