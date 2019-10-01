@@ -219,11 +219,12 @@ class Mission():
         timer = 0
         for position in pos["trainPos"]:
             for i in pos["buildingPos"]:
-                timer += 1
-                self.move(position, i)
-                self.wait(moveInterval)
-                if (timer % collectRateWhileTrain == 0):
-                    self.collectCoins()
+                for j in range(0, 3):
+                    timer += 1
+                    self.move(position, i)
+                    self.wait(moveInterval // 2)
+                    if (timer % collectRateWhileTrain == 0):
+                        self.collectCoins()
 
     def collectTrainYellowOnly(self):
         """
@@ -234,8 +235,9 @@ class Mission():
             for j, i in enumerate(pos["buildingPos"]):  #对每个建筑的位置进行循环
                 if (not self.epicBuildings.count(j)):   #如果对应的位置不是史诗级建筑，跳过
                     continue
-                self.move(position, i)    #新建一个从货物位置拖拽到建筑位置的事件
-                self.wait(moveInterval)   #等待
+                for k in range(0, 3):      # 直接拖曳3次
+                    self.move(position, i)    #新建一个从货物位置拖拽到建筑位置的事件
+                    self.wait(moveInterval // 2)   #等待
 
                 timer += 1                      #每拖拽collectRateWhileTrain次，增加一个收集硬币事件
                 if (timer % collectRateWhileTrain == 0):            
