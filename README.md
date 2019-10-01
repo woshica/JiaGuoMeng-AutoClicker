@@ -8,7 +8,7 @@
 2. 在根目录下（打开解压zip后生成的文件夹）打开cmd或者其它命令行，先运行
 `python JiaGuoMeng.py -h`
 阅读帮助信息后根据个人需求进行参数调整。json输出文件在output子目录。
-3. 下载并安装蓝叠模拟器国际版，链接https://www.bluestacks.com/
+3. 下载并安装蓝叠模拟器国际版，仓库根目录下的BlueStacksInstaller.exe是从官网上下载的蓝叠国际版安装器，官网链接为https://www.bluestacks.com/
 4. 在模拟其中安装《家国梦》，按Ctrl+Shift+7，呼出脚本录制器
 5. 点击输入，导入之前生成的json脚本
 6. 点击运行，解放双手
