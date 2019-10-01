@@ -15,7 +15,7 @@ import sys, argparse
 
 moveInterval = 150                                  #定义了鼠标移动时各个事件间需要等待的时间（单位是毫秒）
 clickInterval = 20                                  #定义了两次鼠标点击事件间需要等待的时间
-upgradeInterval = 350                               #定义了升级建筑时点击事件间需要等待的时间
+upgradeInterval = 300                               #定义了升级建筑时点击事件间需要等待的时间
 initialTime = 500                                   #定义了脚本在初始时需要等待的时间
 
 collectRateWhileTrain = 2                           #定义了火车来的时候，每进行几次拖拽收集一次金币（单位是次数）
@@ -151,7 +151,8 @@ class Mission():
 
 ####################################################################################################
 #
-#   以下是Mission类中定义的事件系列。
+#   以下是Mission类中定义的事件系列。你也可以在此处自定义你的事件系列，然后添加到exportConfiguration中，
+#   并加上对应的名字和快捷键（可选），以生成你自定义的json文件
 #
 ####################################################################################################
     def click(self, pos):
@@ -203,7 +204,7 @@ class Mission():
         """
         bPos = pos["buildingPos"][building]
         self.click(pos["otherPos"]["openUpgrade"])
-        self.wait(clickInterval)
+        self.wait(clickInterval * 3)
         self.click(bPos)
         self.wait(upgradeInterval)
         self.click(pos["otherPos"]["upgrade"])
@@ -228,10 +229,10 @@ class Mission():
         """
         将三个位置的火车货物分别向epicBudings里编号的每个建筑拖拽一次。
         """
-        timer = 0                               #新建一个计时器，用来插入收集硬币事件集
-        for position in pos["trainPos"]:        #对每个火车货物的位置进行循环
+        timer = 0                                       #新建一个计时器，用来插入收集硬币事件集
+        for position in pos["trainPos"]:                #对每个火车货物的位置进行循环
             for j, i in enumerate(pos["buildingPos"]):  #对每个建筑的位置进行循环
-                if (not self.epicBuildings.count(j)):        #如果对应的位置不是史诗级建筑，跳过
+                if (not self.epicBuildings.count(j)):   #如果对应的位置不是史诗级建筑，跳过
                     continue
                 self.move(position, i)    #新建一个从货物位置拖拽到建筑位置的事件
                 self.wait(moveInterval)   #等待
