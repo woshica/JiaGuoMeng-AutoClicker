@@ -5,11 +5,25 @@ import sys, argparse
 
 
 
-moveInterval = 150                                  #定义了鼠标移动时各个事件间需要等待的时间（毫秒）
+
+####################################################################################################
+#
+#   定义了各种鼠标事件的间隔时间、屏幕位置等信息。
+#   如果运行脚本时出现错误或性能问题，可以尝试更改间隔时间或更改坐标。
+#
+####################################################################################################
+
+moveInterval = 150                                  #定义了鼠标移动时各个事件间需要等待的时间（单位是毫秒）
 clickInterval = 20                                  #定义了两次鼠标点击事件间需要等待的时间
-upgradeInterval = 300                               #定义了升级建筑时点击事件间需要等待的时间
+upgradeInterval = 350                               #定义了升级建筑时点击事件间需要等待的时间
 initialTime = 500                                   #定义了脚本在初始时需要等待的时间
+
+collectRateWhileTrain = 2                           #定义了火车来的时候，每进行几次拖拽收集一次金币（单位是次数）
+UpdateRateWhileCollect = 10                         #定义了升级建筑时，每收集几次金币升级
+
 allEvents = ["MouseDown", "MouseMove", "MouseUp"]   #定义了各个事件的名称
+
+#屏幕坐标是蓝叠内使用的坐标，定义的是坐标点在手机屏幕的x、y轴上所占的百分比。比如(50, 50)就是屏幕的正中间，(0, 0)是左上角，(0, 100)是左下角，etc。
 pos = {
     "buildingPos" : #定义了建筑的位置
         [
@@ -28,13 +42,46 @@ pos = {
         (50.00, 80.00)
 }
 
+#定义了导出成json时各个事件系列的函数名对应的文件名和快捷键。其中每一项的key值必须对应Mission中的一个函数。
+exportConfiguration = {
+    "autoCollect" : {
+       "name" : "自动收取硬币",
+       "shortCut" :  "s"
+    },
+    "autoUpgrade" : {
+        "name" : "自动升级建筑",
+        "shortCut" : "u"
+    },
+    "autoTrain" : {
+        "name" : "自动火车发货",
+        "shortCut" : ""
+    },
+    "autoTrainYellowOnly" : {
+        "name" : "自动火车发货(仅黄色)",
+        "shortCut" : "y"
+    }
+}
+
+
+
+####################################################################################################
+#
+#   定义了Mission类。一个Mission是由一个或一系列需要重复执行的事件组成的。
+#   一个Mission中的事件系列可以很简单，比如重复点击屏幕上的某个坐标；也可以比较复杂，比如自动收取火车上的货物，同时保证每秒收取一次金币。
+#   不同的事件系列的创建是通过在Mission中定义不同的函数实现的，这些任务可以通过互相调用的方式相互组合、叠加，从而创建出更复杂而不失可读性的事件系列。
+#   同时，Mission类还提供了自动生成json文件的接口。
+#
+####################################################################################################
+
 class Mission():
     '''
-    Mission类定义了一系列的事件，同时提供了一些便捷的添加事件的方法。
+    Mission类定义了一个需要重复执行的任务，同时提供了一些便捷的添加事件的方法。
     '''
-    def __init__(self, *others):
-        self.events = [] #self.events中存储了此Mission的事件系列。
-        self.currentTime = 0 #self.currentTime定义了添加新事件时新事件的开始时间。
+    def __init__(self, buildingsNeedUpgrade, epicBuildings):
+        self.buildingsNeedUpgrade = buildingsNeedUpgrade #self.buildingsNeedUpgrade中存储了需要升级的建筑的编号
+        self.epicBuildings = epicBuildings #self.epicBuildings中存储了需要接受火车货物的建筑的编号
+
+        self.initialize()
     
     def addEvent(self, pos, eventType, Delta = 0):
         """
@@ -50,53 +97,19 @@ class Mission():
                 "EventType": allEvents[eventType]
             }
         )
-
-    def click(self, pos):
-        '''在pos所在的位置增加一个点击事件'''
-        self.addEvent(pos, 0)
-        self.addEvent(pos, 2)
-        self.wait(clickInterval)
-
-    def move(self, pos1, pos2):
-        '''添加一个从pos1移动到pos2的移动事件'''
-        self.addEvent(pos1, 0)
-        self.wait(moveInterval)
-        self.addEvent(pos2, 1)
-        self.wait(moveInterval)
-        self.addEvent(pos2, 2)
-        self.wait(moveInterval)
-
-    
-    def wait(self, time):
-        '''在上一个事件结束之后等待time秒'''
-        self.currentTime += time
-
-    def collectCoins(self):
-        '''关闭家国之光弹窗并收集所有建筑的金币'''
-        self.click(pos["lightPos"])
-        self.wait(clickInterval)
-        for i in pos["buildingPos"]:
-            self.click(i)
-            self.wait(clickInterval)
-
-    def upgrade(self, building):
-        '''给编号为building的建筑升级'''
-        bPos = pos["buildingPos"][building]
-        self.click(pos["otherPos"]["openUpgrade"])
-        self.wait(clickInterval)
-        self.click(bPos)
-        self.wait(upgradeInterval)
-        self.click(pos["otherPos"]["upgrade"])
-        self.wait(clickInterval)
-        self.click(pos["otherPos"]["openUpgrade"])
-        self.wait(upgradeInterval)
+    def initialize(self):
+        """
+        初始化Mission
+        """
+        self.events = [] #self.events中存储了此Mission的事件系列。
+        self.currentTime = 0 #self.currentTime定义了添加新事件时新事件的开始时间。
 
     def generateJson(self, name, shortCut):
-        '''
+        """
         根据已有的events生成json。
         name表示生成的json的文件名。
         shortCut是键盘上的一个按键，生成并导入json后按[ctrl+alt+对应的按键]即可快捷地激活脚本。
-        '''
+        """
         js = {
             "TimeCreated": time.strftime("%Y%m%dT%H%M%S", time.localtime()),
             "Name": name,
@@ -112,106 +125,195 @@ class Mission():
             "ShortCut": shortCut
         }
         j = json.dumps(js, indent=4, separators=(',', ': '))
-        # print(j)
         try:
             a = open("output\\" + name + ".json", "w")
         except FileNotFoundError:
             makedirs("output")
             a = open("output\\" + name + ".json", "w")
         a.write(j)
+        return j
 
-#以下是一些已经实现的json生成流程。
+    def export(self, funcName, *args, **kwargs):
+        """
+        可以从外部调用的快捷生成json的接口。
+        funcName是定义了需要导出的事件系列的函数的函数名；*args和**kwargs是需要传到这个函数中的参数。
+        """
+        func = getattr(self, funcName)
+        func(*args, **kwargs)
+        retValue = self.generateJson(exportConfiguration[funcName]["name"], exportConfiguration[funcName]["shortCut"])
+        self.initialize()
+        return retValue
 
-def autoCollect():
-    """
-    自动收取硬币.
-    """
-    newMission = Mission()          #新建一个Mission对象
-    newMission.wait(500)            #等待500毫秒
-    newMission.collectCoins()       #新建一个收集硬币事件集
-    j = newMission.generateJson("自动收取硬币", "S")     #生成json文件
-    return j
 
-def autoUpgrade(upgradeBuildings):
+
+
+
+
+####################################################################################################
+#
+#   以下是Mission类中定义的事件系列。
+#
+####################################################################################################
+    def click(self, pos):
+        """
+        在pos所在的位置增加一个点击事件
+        """
+        self.addEvent(pos, 0)
+        self.addEvent(pos, 2)
+        self.wait(clickInterval)
+
+    def move(self, pos1, pos2):
+        """
+        添加一个从pos1移动到pos2的移动事件
+        """
+        self.addEvent(pos1, 0)
+        self.wait(moveInterval)
+        self.addEvent(pos2, 1)
+        self.wait(moveInterval)
+        self.addEvent(pos2, 2)
+        self.wait(moveInterval)
+
     
-    """
-    自动收取硬币+自动升级。
-    upgradeBuildings中的参数是需要升级的建筑，可以填写多个。
-    """
-    newMission = Mission()
-    for everybuilding in upgradeBuildings:
-        newMission.collectCoins()
-        for i in range(10):
-            newMission.wait(500)
-            newMission.collectCoins()
-        newMission.upgrade(everybuilding)
-    j = newMission.generateJson("自动升级建筑", "U")
-    return j
+    def wait(self, time):
+        """
+        在上一个事件结束之后等待time秒
+        """
+        self.currentTime += time
 
-def autoTrain(upgradeBuildings):
-    """
-    自动收货+自动收取硬币+自动升级。收集所有火车。
-    upgradeBuildings中的参数是需要升级的建筑，可以填写多个。
-    """
-    newMission = Mission()
-    newMission.collectCoins()
-    for everybuilding in upgradeBuildings:
-        newMission.upgrade(everybuilding)
+    def collectCoins(self):
+        """
+        关闭家国之光弹窗并收集所有建筑的金币
+        """
+        self.click(pos["lightPos"])
+        self.wait(clickInterval)
+        for i in pos["buildingPos"]:
+            self.click(i)
+            self.wait(clickInterval)
+
+    def autoCollect(self):
+        """
+        自动收取硬币.
+        """
+        self.wait(500)            #等待500毫秒
+        self.collectCoins()       #新建一个收集硬币事件集
+
+    def upgrade(self, building):
+        """
+        给编号为building的建筑升级
+        """
+        bPos = pos["buildingPos"][building]
+        self.click(pos["otherPos"]["openUpgrade"])
+        self.wait(clickInterval)
+        self.click(bPos)
+        self.wait(upgradeInterval)
+        self.click(pos["otherPos"]["upgrade"])
+        self.wait(clickInterval)
+        self.click(pos["otherPos"]["openUpgrade"])
+        self.wait(upgradeInterval)
+
+    def collectTrain(self):
+        """
+        将三个位置的火车货物分别向每个建筑物拖拽一次。
+        """
         timer = 0
         for position in pos["trainPos"]:
             for i in pos["buildingPos"]:
                 timer += 1
-                newMission.move(position, i)
-                newMission.wait(moveInterval)
-                if (timer % 2 == 0):
-                    newMission.collectCoins()
-    j = newMission.generateJson("自动火车发货", "T")
-    return j
+                self.move(position, i)
+                self.wait(moveInterval)
+                if (timer % collectRateWhileTrain == 0):
+                    self.collectCoins()
 
-def autoTrainYellowOnly(upgradeBuildings, epicBuildings):
-    """
-    自动收货+自动收取硬币+自动升级。只收史诗级建筑的火车。
-    upgradeBuildings中的参数是需要升级的建筑，可以填写多个。
-    """
-    newMission = Mission()                      #新建一个Mission类的对象
-    newMission.collectCoins()                   #新建一个收集硬币事件集。
-    for everybuilding in upgradeBuildings:      #根据需要升级的建筑循环
-        newMission.upgrade(everybuilding)   #新建一个升级对应建筑的事件集
+    def collectTrainYellowOnly(self):
+        """
+        将三个位置的火车货物分别向epicBudings里编号的每个建筑拖拽一次。
+        """
         timer = 0                               #新建一个计时器，用来插入收集硬币事件集
         for position in pos["trainPos"]:        #对每个火车货物的位置进行循环
             for j, i in enumerate(pos["buildingPos"]):  #对每个建筑的位置进行循环
-                if (not epicBuildings.count(j)):   #如果对应的位置不是史诗级建筑，跳过
+                if (not self.epicBuildings.count(j)):        #如果对应的位置不是史诗级建筑，跳过
                     continue
-                newMission.move(position, i)    #新建一个从货物位置拖拽到建筑位置的事件
-                newMission.wait(moveInterval)   #等待
+                self.move(position, i)    #新建一个从货物位置拖拽到建筑位置的事件
+                self.wait(moveInterval)   #等待
 
-                timer += 1                      #每拖拽两次，增加一个收集硬币事件
-                if (timer % 2 == 0):            
-                    newMission.collectCoins()
+                timer += 1                      #每拖拽collectRateWhileTrain次，增加一个收集硬币事件
+                if (timer % collectRateWhileTrain == 0):            
+                    self.collectCoins()
+    
+    def autoUpgrade(self):
+        """
+        自动收取硬币+自动升级。
+        """
+        for everybuilding in self.buildingsNeedUpgrade:
+            self.collectCoins()
+            for i in range(UpdateRateWhileCollect):
+                self.wait(500)
+                self.collectCoins()
+            self.upgrade(everybuilding)
 
-    j = newMission.generateJson("自动火车发货(仅黄色)", "Y")
-    return j
+    def autoTrain(self):
+        """
+        自动收货+自动收取硬币+自动升级。收集所有火车。
+        """
+        self.collectCoins()
+        if (self.buildingsNeedUpgrade == []):
+            self.collectTrain()
+        else:
+            for everybuilding in self.buildingsNeedUpgrade:
+                self.upgrade(everybuilding)
+                self.collectTrain()
 
+    def autoTrainYellowOnly(self):    
+        """
+        自动收货+自动收取硬币+自动升级。只收史诗级建筑的火车。
+        """
+        self.collectCoins()                  
+        if (not self.buildingsNeedUpgrade):               
+            self.collectTrain()   
+        else:
+            for everybuilding in self.buildingsNeedUpgrade:
+                self.upgrade(everybuilding)       
+                self.collectTrainYellowOnly()
+    
+
+
+
+
+####################################################################################################
+#
+#   以下是main函数。
+#
+####################################################################################################
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='输入史诗建筑位置和需要升级的建筑。输出文件在output子目录。')
-    parser.add_argument('-epicId', metavar='N', type=int, nargs='+',
-                        help='史实建筑的位置')
-    parser.add_argument('-lvup', metavar='N', type=int, nargs='+',
-                        help='要升级建筑的位置')
-    parser.add_argument('--train',action='store_true',
-                        help="收取火车货物")
-    parser.add_argument('--yellow-only',action='store_true',
-                        help="只收取黄色货物")
+    parser = argparse.ArgumentParser(
+        description='输入史诗建筑位置和需要升级的建筑。输出文件在output子目录。\n例："python JiaGuoMeng.py -epicId 0 1 2 3 -lvup 0 1 -all"')
+    parser.add_argument('-epicId', metavar='编号', type=int, nargs='+',
+                        help='在这个flag后加上你想要接受火车货物的建筑的编号')
+    parser.add_argument('-lvup', metavar='编号', type=int, nargs='+',
+                        help='在这个flag后加上你要升级建筑的编号')
+    parser.add_argument('-list',action='store_true',
+                        help="列出所有可以生成的json以及对应的指令")
+    parser.add_argument('-all',action='store_true',
+                        help="一键生成所有可以生成的json。如果使用此flag，则不需要使用下面的flag。")
+    parser.add_argument('-generate',metavar='指令', type=str, nargs='+',
+                        help="根据flag后的指令，生成对应的json文件。例：-generate autoCollect autoUpgrade")
+    
     args = parser.parse_args()
+    nm = Mission(args.lvup, args.epicId)
 
-    epicBuildings = args.epicId
-    buildingsNeedUpgrade = args.lvup
-    if args.yellow_only:
-        autoTrainYellowOnly(args.lvup, args.epicId)
-    elif args.train:
-        autoTrain(args.lvup)
-    elif len(buildingsNeedUpgrade):
-        autoUpgrade(args.lvup)
+    if args.list:
+        for i in exportConfiguration:
+            print("可输出json文件名：" + exportConfiguration[i]["name"])
+            print("介绍：" + ''.join(getattr(Mission, i).__doc__.split()))
+            print("对应指令：" + i)
+            print()
+    elif args.all:
+        for i in exportConfiguration:
+            nm.export(i)
+    elif args.generate:
+        for i in args.generate:
+            nm.export(i)
     else:
-        autoCollect()
+        print("请输入“python JiaGuoMeng.py -h”查看用法。")
+        exit()
