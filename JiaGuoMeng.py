@@ -270,7 +270,7 @@ class Mission():
         """
         self.collectCoins()                  
         if (not self.buildingsNeedUpgrade):               
-            self.collectTrain()   
+            self.collectTrainYellowOnly()   
         else:
             for everybuilding in self.buildingsNeedUpgrade:
                 self.upgrade(everybuilding)       
