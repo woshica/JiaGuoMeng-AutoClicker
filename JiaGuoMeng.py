@@ -230,7 +230,7 @@ class Mission():
         self.wait(upgradeInterval)
 
     def exchange(self, building, n):
-        '''将'编号为building的建筑交换成序列中第n个'''
+        '''将编号为building的建筑交换成序列中第n个'''
         bPos = pos["buildingPos"][building]
         self.click(bPos)
         self.wait(upgradeInterval)
