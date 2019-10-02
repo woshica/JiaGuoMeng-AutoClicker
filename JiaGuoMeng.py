@@ -17,7 +17,7 @@ moveInterval = 150                                  #定义了鼠标移动时各
 clickInterval = 20                                  #定义了两次鼠标点击事件间需要等待的时间
 upgradeInterval = 300                               #定义了升级建筑时点击事件间需要等待的时间
 initialTime = 500                                   #定义了脚本在初始时需要等待的时间
-
+cycle = 5                                           #定义了重载游戏前重复收取货物的次数
 collectRateWhileTrain = 2                           #定义了火车来的时候，每进行几次拖拽收集一次金币（单位是次数）
 UpdateRateWhileCollect = 10                         #定义了升级建筑时，每收集几次金币升级
 
@@ -41,7 +41,11 @@ pos = {
             "lightPos" : (50.00, 80.00),
             "exchange" : (50.00, 43.40),
             "moveDistence" : (0.00, 19.43),
-            "exchangeoffset": (0.00, 21.00)
+            "exchangeoffset": (0.00, 21.00),
+            "account": (6.16, 3.91),
+            "logout": (28.33, 74.38),
+            "qqLogin": (71.57, 82.77),
+            "qqLogin2": (50.0, 48.77)
         }
 }
 
@@ -80,10 +84,11 @@ class Mission():
     '''
     Mission类定义了一个需要重复执行的任务，同时提供了一些便捷的添加事件的方法。
     '''
-    def __init__(self, buildingsNeedUpgrade, epicBuildings, exchangeBuildings):
+    def __init__(self, buildingsNeedUpgrade, epicBuildings, exchangeBuildings, reloadGame):
         self.buildingsNeedUpgrade = buildingsNeedUpgrade #self.buildingsNeedUpgrade中存储了需要升级的建筑的编号
         self.epicBuildings = epicBuildings #self.epicBuildings中存储了需要接受火车货物的建筑的编号
         self.exchangeBuildings = exchangeBuildings
+        self.reloadGame = reloadGame
 
         self.initialize()
     
@@ -250,6 +255,16 @@ class Mission():
         self.click(pos["otherPos"]["lightPos"])
         self.wait(clickInterval)
 
+    def reload(self):
+        self.click(pos["otherPos"]["account"])
+        self.wait(upgradeInterval)
+        self.click(pos["otherPos"]["logout"])
+        self.wait(3000)
+        self.click(pos["otherPos"]["qqLogin"])
+        self.wait(1500)
+        self.click(pos["otherPos"]["qqLogin2"])
+        self.wait(5000)
+
     def collectTrain(self):
         """
         将三个位置的火车货物分别向每个建筑物拖拽一次。
@@ -311,7 +326,17 @@ class Mission():
             for everybuilding in self.buildingsNeedUpgrade:
                 self.upgrade(everybuilding)
                 self.collectTrainYellowOnly()
-        if (self.exchangeBuildings):
+        if (self.reloadGame):
+            for i in range(cycle-1):
+                self.collectCoins()
+                if (not self.buildingsNeedUpgrade):
+                    self.collectTrainYellowOnly()
+                else:
+                    for everybuilding in self.buildingsNeedUpgrade:
+                        self.upgrade(everybuilding)
+                        self.collectTrainYellowOnly()
+            self.reload()
+        elif (self.exchangeBuildings):
             buildings = [0,1,2,3,4,5,6,7,8]
             exchangedBuildings = [i for i in buildings if not self.epicBuildings.count(i)]
             self.click(pos["otherPos"]["openUpgrade"])
@@ -347,10 +372,12 @@ if __name__ == '__main__':
     parser.add_argument('-generate',metavar='指令', type=str, nargs='+',
                         help="根据flag后的指令，生成对应的json文件。例：-generate autoCollect autoUpgrade"),
     parser.add_argument('-exchange', metavar='编号', type=int, nargs='+',
-                        help='在这个flag后按顺序加上换上列表里第一个建筑后需要换回来时在离表里的编号')
+                        help='在这个flag后按顺序加上换上列表里第一个建筑后需要换回来时在离表里的编号 (只收橙时可选)')
+    parser.add_argument('-reload',action='store_true',
+                        help="退出并重新登录来刷新火车 (只收橙时可选)")
     
     args = parser.parse_args()
-    nm = Mission(args.lvup, args.epicId, args.exchange)
+    nm = Mission(args.lvup, args.epicId, args.exchange, args.reload)
 
     if args.list:
         for i in exportConfiguration:
