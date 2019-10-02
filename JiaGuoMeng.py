@@ -273,9 +273,9 @@ class Mission():
                 if (not self.epicBuildings.count(j)):   #如果对应的位置不是史诗级建筑，跳过
                     continue
                 self.move(position, i)    #新建一个从货物位置拖拽到建筑位置的事件
-                self.wait(moveInterval)   #等待
+                self.wait(clickInterval)   #等待
                 self.move(position, i)    #新建一个从货物位置拖拽到建筑位置的事件
-                self.wait(moveInterval)   #等待
+                self.wait(clickInterval)   #等待
     
     def autoUpgrade(self):
         """
@@ -347,7 +347,7 @@ if __name__ == '__main__':
     parser.add_argument('-generate',metavar='指令', type=str, nargs='+',
                         help="根据flag后的指令，生成对应的json文件。例：-generate autoCollect autoUpgrade"),
     parser.add_argument('-exchange', metavar='编号', type=int, nargs='+',
-                        help='在这个flag后按顺序加上你要交换的各个建筑在交换列表里的编号')
+                        help='在这个flag后按顺序加上换上列表里第一个建筑后需要换回来时在离表里的编号')
     
     args = parser.parse_args()
     nm = Mission(args.lvup, args.epicId, args.exchange)
