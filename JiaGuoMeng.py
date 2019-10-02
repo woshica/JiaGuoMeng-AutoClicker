@@ -33,7 +33,7 @@ pos = {
         ],
     "trainPos" : #定义了火车上的三个货物的位置
         [(61.44, 85.01), (77.13, 81.52), (89.78, 76.87)],
-    "otherPos" : #定义了开启建筑编辑界面按钮以及升级按钮的位置
+    "otherPos" : #定义了开启建筑编辑界面按钮，升级按钮的位置，切换建筑的位置，推出和登录的位置
         {
             "openUpgrade" : (90.88, 60.22),
             "upgrade" : (78.18, 89.43),
@@ -256,6 +256,9 @@ class Mission():
         self.wait(clickInterval)
 
     def reload(self):
+        """
+        推出并重新QQ登录以刷新火车
+        """
         self.click(pos["otherPos"]["account"])
         self.wait(upgradeInterval)
         self.click(pos["otherPos"]["logout"])
@@ -263,7 +266,7 @@ class Mission():
         self.click(pos["otherPos"]["qqLogin"])
         self.wait(1500)
         self.click(pos["otherPos"]["qqLogin2"])
-        self.wait(5000)
+        self.wait(6000)
 
     def collectTrain(self):
         """
@@ -336,7 +339,7 @@ class Mission():
                         self.upgrade(everybuilding)
                         self.collectTrainYellowOnly()
             self.reload()
-        elif (self.exchangeBuildings):
+        elif (self.exchangeBuildings):  #替换非橙色建筑并将其换回来以刷新火车
             buildings = [0,1,2,3,4,5,6,7,8]
             exchangedBuildings = [i for i in buildings if not self.epicBuildings.count(i)]
             self.click(pos["otherPos"]["openUpgrade"])
@@ -374,7 +377,7 @@ if __name__ == '__main__':
     parser.add_argument('-exchange', metavar='编号', type=int, nargs='+',
                         help='在这个flag后按顺序加上换上列表里第一个建筑后需要换回来时在离表里的编号 (只收橙时可选)')
     parser.add_argument('-reload',action='store_true',
-                        help="退出并重新登录来刷新火车 (只收橙时可选)")
+                        help="退出并重新登录来刷新火车 (QQ登录) (只收橙时可选)")
     
     args = parser.parse_args()
     nm = Mission(args.lvup, args.epicId, args.exchange, args.reload)
