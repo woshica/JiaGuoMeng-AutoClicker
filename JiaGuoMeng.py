@@ -36,10 +36,13 @@ pos = {
     "otherPos" : #定义了开启建筑编辑界面按钮以及升级按钮的位置
         {
             "openUpgrade" : (90.88, 60.22),
-            "upgrade" : (78.18, 89.43)
-        },
-    "lightPos" : #定义了空白点的位置（用来关闭家国之光弹窗）
-        (50.00, 80.00)
+            "upgrade" : (78.18, 89.43),
+            "openExchange" : (50.00, 89.43),
+            "lightPos" : (50.00, 80.00),
+            "exchange" : (50.00, 43.40),
+            "moveDistence" : (0.00, 19.43),
+            "exchangeoffset": (0.00, 21.00)
+        }
 }
 
 #定义了导出成json时各个事件系列的函数名对应的文件名和快捷键。其中每一项的key值必须对应Mission中的一个函数。
@@ -77,9 +80,10 @@ class Mission():
     '''
     Mission类定义了一个需要重复执行的任务，同时提供了一些便捷的添加事件的方法。
     '''
-    def __init__(self, buildingsNeedUpgrade, epicBuildings):
+    def __init__(self, buildingsNeedUpgrade, epicBuildings, exchangeBuildings):
         self.buildingsNeedUpgrade = buildingsNeedUpgrade #self.buildingsNeedUpgrade中存储了需要升级的建筑的编号
         self.epicBuildings = epicBuildings #self.epicBuildings中存储了需要接受火车货物的建筑的编号
+        self.exchangeBuildings = exchangeBuildings
 
         self.initialize()
     
@@ -174,6 +178,19 @@ class Mission():
         self.addEvent(pos2, 2)
         self.wait(moveInterval)
 
+    def exchangeMove(self, pos1, pos2):
+        """
+        添加一个从pos1移动到pos2的移动事件
+        """
+        self.addEvent(pos1, 0)
+        self.wait(clickInterval)
+        for t in range(moveInterval//5):
+            pos = tuple([(i-j)*float(t)/(moveInterval//5)+j for i,j in zip(pos2, pos1)])
+            self.addEvent(pos, 1)
+            self.wait(5)
+        self.addEvent(pos2, 2)
+        self.wait(clickInterval)
+
     
     def wait(self, time):
         """
@@ -185,7 +202,7 @@ class Mission():
         """
         关闭家国之光弹窗并收集所有建筑的金币
         """
-        self.click(pos["lightPos"])
+        self.click(pos["otherPos"]["lightPos"])
         self.wait(clickInterval)
         for i in pos["buildingPos"]:
             self.click(i)
@@ -212,6 +229,27 @@ class Mission():
         self.click(pos["otherPos"]["openUpgrade"])
         self.wait(upgradeInterval)
 
+    def exchange(self, building, n):
+        '''将'编号为building的建筑交换成序列中第n个'''
+        bPos = pos["buildingPos"][building]
+        self.click(bPos)
+        self.wait(upgradeInterval)
+        self.click(pos["otherPos"]["openExchange"])
+        self.wait(upgradeInterval)
+        buildingPos = pos["otherPos"]['exchange']
+        if n < 3:
+            buildingPos = tuple([i+n*j for i,j in zip(buildingPos, pos["otherPos"]['moveDistence'])])
+        else:
+            movePos = tuple([i+j for i,j in zip(buildingPos, pos["otherPos"]['exchangeoffset'])])
+            for i in range(n-2):
+                self.exchangeMove(movePos, buildingPos)
+                self.wait(clickInterval)
+            buildingPos = tuple([i+2*j for i,j in zip(buildingPos, pos["otherPos"]['moveDistence'])])
+        self.click(buildingPos)
+        self.wait(upgradeInterval*4)
+        self.click(pos["otherPos"]["lightPos"])
+        self.wait(clickInterval)
+
     def collectTrain(self):
         """
         将三个位置的火车货物分别向每个建筑物拖拽一次。
@@ -236,10 +274,8 @@ class Mission():
                     continue
                 self.move(position, i)    #新建一个从货物位置拖拽到建筑位置的事件
                 self.wait(moveInterval)   #等待
-
-                timer += 1                      #每拖拽collectRateWhileTrain次，增加一个收集硬币事件
-                if (timer % collectRateWhileTrain == 0):            
-                    self.collectCoins()
+                self.move(position, i)    #新建一个从货物位置拖拽到建筑位置的事件
+                self.wait(moveInterval)   #等待
     
     def autoUpgrade(self):
         """
@@ -268,14 +304,25 @@ class Mission():
         """
         自动收货+自动收取硬币+自动升级。只收史诗级建筑的火车。
         """
-        self.collectCoins()                  
-        if (not self.buildingsNeedUpgrade):               
-            self.collectTrainYellowOnly()   
+        self.collectCoins()
+        if (not self.buildingsNeedUpgrade):
+            self.collectTrainYellowOnly()
         else:
             for everybuilding in self.buildingsNeedUpgrade:
-                self.upgrade(everybuilding)       
+                self.upgrade(everybuilding)
                 self.collectTrainYellowOnly()
-    
+        if (self.exchangeBuildings):
+            buildings = [0,1,2,3,4,5,6,7,8]
+            exchangedBuildings = [i for i in buildings if not self.epicBuildings.count(i)]
+            self.click(pos["otherPos"]["openUpgrade"])
+            self.wait(clickInterval)
+            for i in range(len(exchangedBuildings)):
+                self.exchange(exchangedBuildings[i], 0)
+                self.wait(upgradeInterval)
+                self.exchange(exchangedBuildings[i], self.exchangeBuildings[i])
+                self.wait(upgradeInterval)
+            self.click(pos["otherPos"]["openUpgrade"])
+            self.wait(clickInterval)
 
 
 
@@ -298,10 +345,12 @@ if __name__ == '__main__':
     parser.add_argument('-all',action='store_true',
                         help="一键生成所有可以生成的json。如果使用此flag，则不需要使用下面的flag。")
     parser.add_argument('-generate',metavar='指令', type=str, nargs='+',
-                        help="根据flag后的指令，生成对应的json文件。例：-generate autoCollect autoUpgrade")
+                        help="根据flag后的指令，生成对应的json文件。例：-generate autoCollect autoUpgrade"),
+    parser.add_argument('-exchange', metavar='编号', type=int, nargs='+',
+                        help='在这个flag后按顺序加上你要交换的各个建筑在交换列表里的编号')
     
     args = parser.parse_args()
-    nm = Mission(args.lvup, args.epicId)
+    nm = Mission(args.lvup, args.epicId, args.exchange)
 
     if args.list:
         for i in exportConfiguration:
