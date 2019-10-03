@@ -15,11 +15,11 @@ import sys, argparse
 
 moveInterval = 150                                  #定义了鼠标移动时各个事件间需要等待的时间（单位是毫秒）
 clickInterval = 20                                  #定义了两次鼠标点击事件间需要等待的时间
-upgradeInterval = 400                               #定义了升级建筑时点击事件间需要等待的时间
+upgradeInterval = 300                               #定义了升级建筑时点击事件间需要等待的时间
 initialTime = 500                                   #定义了脚本在初始时需要等待的时间
 reloadCycle = 5                                     #定义了重载游戏前重复收取货物的次数
 policyCycle = 10                                    #定义了升级政策前重复收取货物次数
-resetCycle = 3                                      #定义了重置界面前的重复收货物次数
+resetCycle = 2                                      #定义了重置界面前的重复收货物次数
 collectRateWhileTrain = 2                           #定义了火车来的时候，每进行几次拖拽收集一次金币（单位是次数）
 UpdateRateWhileCollect = 10                         #定义了升级建筑时，每收集几次金币升级
 
