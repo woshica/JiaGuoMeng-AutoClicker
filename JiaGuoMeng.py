@@ -17,7 +17,8 @@ moveInterval = 150                                  #定义了鼠标移动时各
 clickInterval = 20                                  #定义了两次鼠标点击事件间需要等待的时间
 upgradeInterval = 300                               #定义了升级建筑时点击事件间需要等待的时间
 initialTime = 500                                   #定义了脚本在初始时需要等待的时间
-cycle = 5                                           #定义了重载游戏前重复收取货物的次数
+reloadCycle = 5                                     #定义了重载游戏前重复收取货物的次数
+policyCycle = 10                                    #定义了升级政策前重复收取货物次数
 collectRateWhileTrain = 2                           #定义了火车来的时候，每进行几次拖拽收集一次金币（单位是次数）
 UpdateRateWhileCollect = 10                         #定义了升级建筑时，每收集几次金币升级
 
@@ -28,7 +29,7 @@ pos = {
     "buildingPos" : #定义了建筑的位置
         [
             (26.76, 61.07), (51.46, 55.58), (72.26, 48.25),
-            (30.9, 51.81), (53.77, 44.35), (73.84, 35.92),
+            (27.73, 48.28), (53.77, 44.35), (73.84, 35.92),
             (26.52, 35.06), (51.09, 27.69), (74.14, 21.25)
         ],
     "trainPos" : #定义了火车上的三个货物的位置
@@ -38,15 +39,21 @@ pos = {
             "openUpgrade" : (90.88, 60.22),
             "upgrade" : (78.18, 89.43),
             "openExchange" : (50.00, 89.43),
-            "lightPos" : (50.00, 80.00),
+            "lightPos" : (40.00, 0.80),
             "exchange" : (50.00, 43.40),
             "moveDistence" : (0.00, 19.43),
             "exchangeoffset": (0.00, 21.00),
             "account": (6.16, 3.91),
             "logout": (28.33, 74.38),
             "qqLogin": (71.57, 82.77),
-            "qqLogin2": (50.0, 48.77)
-        }
+            "qqLogin2": (50.0, 48.77),
+            "policyCenter": (22.22, 9.93),
+            "policyUpgrade": (49.13, 61.67)
+        },
+    "policyPos": #每阶段6个政策的位置，从左到右，从上到下一次为0-5
+        [(31.60,38.20), (70.37, 38.20),
+         (31.60,47.20), (70.37,47.20), 
+         (31.60,56.20)]#, (70.37,56.20)]
 }
 
 #定义了导出成json时各个事件系列的函数名对应的文件名和快捷键。其中每一项的key值必须对应Mission中的一个函数。
@@ -84,11 +91,12 @@ class Mission():
     '''
     Mission类定义了一个需要重复执行的任务，同时提供了一些便捷的添加事件的方法。
     '''
-    def __init__(self, buildingsNeedUpgrade, epicBuildings, exchangeBuildings, reloadGame):
+    def __init__(self, buildingsNeedUpgrade, epicBuildings, exchangeBuildings, reloadGame, policys):
         self.buildingsNeedUpgrade = buildingsNeedUpgrade #self.buildingsNeedUpgrade中存储了需要升级的建筑的编号
         self.epicBuildings = epicBuildings #self.epicBuildings中存储了需要接受火车货物的建筑的编号
         self.exchangeBuildings = exchangeBuildings
         self.reloadGame = reloadGame
+        self.policys =policys
 
         self.initialize()
     
@@ -213,13 +221,6 @@ class Mission():
             self.click(i)
             self.wait(clickInterval)
 
-    def autoCollect(self):
-        """
-        自动收取硬币.
-        """
-        self.wait(500)            #等待500毫秒
-        self.collectCoins()       #新建一个收集硬币事件集
-
     def upgrade(self, building):
         """
         给编号为building的建筑升级
@@ -232,6 +233,28 @@ class Mission():
         self.click(pos["otherPos"]["upgrade"])
         self.wait(clickInterval)
         self.click(pos["otherPos"]["openUpgrade"])
+        self.wait(upgradeInterval)
+
+    def upgradePolicy(self, ord):
+        """
+        给编号为ord的政策升级
+        """
+        pPos = pos["policyPos"][ord]
+        self.click(pPos)
+        self.wait(upgradeInterval)
+        self.click(pos["otherPos"]["policyUpgrade"])
+        self.click(pos["otherPos"]["lightPos"])
+        self.wait(upgradeInterval)
+
+    def upgradePolicys(self):
+        """
+        升级政策
+        """
+        self.click(pos["otherPos"]["policyCenter"])
+        self.wait(upgradeInterval)
+        for i in self.policys:
+            self.upgradePolicy(i)
+        self.click(pos["otherPos"]["lightPos"])
         self.wait(upgradeInterval)
 
     def exchange(self, building, n):
@@ -295,62 +318,94 @@ class Mission():
                 self.move(position, i)    #新建一个从货物位置拖拽到建筑位置的事件
                 self.wait(clickInterval)   #等待
     
+    def autoCollect(self):
+        """
+        自动收取硬币.
+        """
+        times=1
+        if (self.policys):
+            times=max(policyCycle,times)
+        for i in range(1,times+1):
+            self.wait(500)            #等待500毫秒
+            self.collectCoins()       #新建一个收集硬币事件集
+            if (i%policyCycle==0 and self.policys):
+                self.upgradePolicys()
+
     def autoUpgrade(self):
         """
         自动收取硬币+自动升级。
         """
-        for everybuilding in self.buildingsNeedUpgrade:
-            self.collectCoins()
-            for i in range(UpdateRateWhileCollect):
-                self.wait(500)
+        times=1
+        if (self.policys):
+            times=max(policyCycle,times)
+        for i in range(1,times+1):
+            if self.buildingsNeedUpgrade:
+                for everybuilding in self.buildingsNeedUpgrade:
+                    self.collectCoins()
+                    for i in range(UpdateRateWhileCollect):
+                        self.wait(500)
+                        self.collectCoins()
+                    self.upgrade(everybuilding)
+            else:
                 self.collectCoins()
-            self.upgrade(everybuilding)
+                self.wait(500)
+            if (i%policyCycle==0 and self.policys):
+                self.upgradePolicys()
 
     def autoTrain(self):
         """
         自动收货+自动收取硬币+自动升级。收集所有火车。
         """
-        self.collectCoins()
-        if (self.buildingsNeedUpgrade == []):
-            self.collectTrain()
-        else:
-            for everybuilding in self.buildingsNeedUpgrade:
-                self.upgrade(everybuilding)
+        times=1
+        if (self.policys):
+            times=max(policyCycle,times)
+        for i in range(1,times+1):
+            self.collectCoins()
+            if (self.buildingsNeedUpgrade):
+                for everybuilding in self.buildingsNeedUpgrade:
+                    self.upgrade(everybuilding)
+                    self.collectTrain()
+            else:
                 self.collectTrain()
+
+            if (i%policyCycle==0 and self.policys):
+                self.upgradePolicys()
 
     def autoTrainYellowOnly(self):    
         """
         自动收货+自动收取硬币+自动升级。只收史诗级建筑的火车。
         """
-        self.collectCoins()
-        if (not self.buildingsNeedUpgrade):
-            self.collectTrainYellowOnly()
-        else:
-            for everybuilding in self.buildingsNeedUpgrade:
-                self.upgrade(everybuilding)
-                self.collectTrainYellowOnly()
+        times=1
         if (self.reloadGame):
-            for i in range(cycle-1):
-                self.collectCoins()
-                if (not self.buildingsNeedUpgrade):
+            times=reloadCycle
+        if (self.policys):
+            times=max(policyCycle,times)
+        for i in range(1,times+1):
+            self.collectCoins()
+            if (not self.buildingsNeedUpgrade):
+                self.collectTrainYellowOnly()
+            else:
+                for everybuilding in self.buildingsNeedUpgrade:
+                    self.upgrade(everybuilding)
                     self.collectTrainYellowOnly()
-                else:
-                    for everybuilding in self.buildingsNeedUpgrade:
-                        self.upgrade(everybuilding)
-                        self.collectTrainYellowOnly()
-            self.reload()
-        elif (self.exchangeBuildings):  #替换非橙色建筑并将其换回来以刷新火车
-            buildings = [0,1,2,3,4,5,6,7,8]
-            exchangedBuildings = [i for i in buildings if not self.epicBuildings.count(i)]
-            self.click(pos["otherPos"]["openUpgrade"])
-            self.wait(clickInterval)
-            for i in range(len(exchangedBuildings)):
-                self.exchange(exchangedBuildings[i], 0)
-                self.wait(upgradeInterval)
-                self.exchange(exchangedBuildings[i], self.exchangeBuildings[i])
-                self.wait(upgradeInterval)
-            self.click(pos["otherPos"]["openUpgrade"])
-            self.wait(clickInterval)
+            if (self.reloadGame):
+                if (i%reloadCycle==0):
+                    self.reload()
+            elif (self.exchangeBuildings):  #替换非橙色建筑并将其换回来以刷新火车
+                buildings = [0,1,2,3,4,5,6,7,8]
+                exchangedBuildings = [i for i in buildings if not self.epicBuildings.count(i)]
+                self.click(pos["otherPos"]["openUpgrade"])
+                self.wait(clickInterval)
+                for i in range(len(exchangedBuildings)):
+                    self.exchange(exchangedBuildings[i], 0)
+                    self.wait(upgradeInterval)
+                    self.exchange(exchangedBuildings[i], self.exchangeBuildings[i])
+                    self.wait(upgradeInterval)
+                self.click(pos["otherPos"]["openUpgrade"])
+                self.wait(clickInterval)
+            if (i%policyCycle==0 and self.policys):
+                self.upgradePolicys()
+
 
 
 
@@ -378,9 +433,11 @@ if __name__ == '__main__':
                         help='在这个flag后按顺序加上换上列表里第一个建筑后需要换回来时在离表里的编号 (只收橙时可选)')
     parser.add_argument('-reload',action='store_true',
                         help="退出并重新登录来刷新火车 (QQ登录) (只收橙时可选)")
+    parser.add_argument('-policy', metavar='编号', type=int, nargs='+',
+                        help="在这个flag后加上你要升级的政策的编号，编号顺序为升级顺序，需要先手动拖动政策使上个阶段的底部与框的顶部对齐，退出重新登陆后需要手动再拖动")
     
     args = parser.parse_args()
-    nm = Mission(args.lvup, args.epicId, args.exchange, args.reload)
+    nm = Mission(args.lvup, args.epicId, args.exchange, args.reload, args.policy)
 
     if args.list:
         for i in exportConfiguration:
