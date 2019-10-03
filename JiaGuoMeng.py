@@ -15,10 +15,11 @@ import sys, argparse
 
 moveInterval = 150                                  #定义了鼠标移动时各个事件间需要等待的时间（单位是毫秒）
 clickInterval = 20                                  #定义了两次鼠标点击事件间需要等待的时间
-upgradeInterval = 300                               #定义了升级建筑时点击事件间需要等待的时间
+upgradeInterval = 400                               #定义了升级建筑时点击事件间需要等待的时间
 initialTime = 500                                   #定义了脚本在初始时需要等待的时间
 reloadCycle = 5                                     #定义了重载游戏前重复收取货物的次数
 policyCycle = 10                                    #定义了升级政策前重复收取货物次数
+resetCycle = 3                                      #定义了重置界面前的重复收货物次数
 collectRateWhileTrain = 2                           #定义了火车来的时候，每进行几次拖拽收集一次金币（单位是次数）
 UpdateRateWhileCollect = 10                         #定义了升级建筑时，每收集几次金币升级
 
@@ -36,7 +37,7 @@ pos = {
         [(61.44, 85.01), (77.13, 81.52), (89.78, 76.87)],
     "otherPos" : #定义了开启建筑编辑界面按钮，升级按钮的位置，切换建筑的位置，推出和登录的位置
         {
-            "openUpgrade" : (90.88, 60.22),
+            "openUpgrade" : (91.07, 60.22),
             "upgrade" : (78.18, 89.43),
             "openExchange" : (50.00, 89.43),
             "lightPos" : (40.00, 0.80),
@@ -47,7 +48,7 @@ pos = {
             "logout": (28.33, 74.38),
             "qqLogin": (71.57, 82.77),
             "qqLogin2": (50.0, 48.77),
-            "policyCenter": (22.22, 9.93),
+            "policyCenter": (22.00, 11.40),
             "policyUpgrade": (49.13, 61.67)
         },
     "policyPos": #每阶段6个政策的位置，从左到右，从上到下一次为0-5
@@ -215,11 +216,24 @@ class Mission():
         """
         关闭家国之光弹窗并收集所有建筑的金币
         """
-        self.click(pos["otherPos"]["lightPos"])
         self.wait(clickInterval)
         for i in pos["buildingPos"]:
             self.click(i)
             self.wait(clickInterval)
+
+    def reset(self):
+        """
+        避免卡在某些界面(如建筑升级界面，家国之光弹窗)，关闭所有弹窗
+        """
+        self.click(pos["otherPos"]["openUpgrade"])
+        self.click(pos["otherPos"]["policyCenter"])
+        self.wait(upgradeInterval)
+        self.click(pos["otherPos"]["openUpgrade"])
+        self.click(pos["otherPos"]["policyCenter"])
+        self.wait(upgradeInterval)
+        self.click(pos["otherPos"]["lightPos"])
+        self.click(pos["otherPos"]["lightPos"])
+        self.wait(upgradeInterval)
 
     def upgrade(self, building):
         """
@@ -254,6 +268,8 @@ class Mission():
         self.wait(upgradeInterval)
         for i in self.policys:
             self.upgradePolicy(i)
+        self.click(pos["otherPos"]["lightPos"])
+        self.wait(upgradeInterval)
         self.click(pos["otherPos"]["lightPos"])
         self.wait(upgradeInterval)
 
@@ -322,7 +338,9 @@ class Mission():
         """
         自动收取硬币.
         """
-        times=1
+        times=resetCycle
+        if (self.reloadGame):
+            times=max(reloadCycle,times)
         if (self.policys):
             times=max(policyCycle,times)
         for i in range(1,times+1):
@@ -330,12 +348,16 @@ class Mission():
             self.collectCoins()       #新建一个收集硬币事件集
             if (i%policyCycle==0 and self.policys):
                 self.upgradePolicys()
+            if (i%resetCycle==0):
+                self.reset()
 
     def autoUpgrade(self):
         """
         自动收取硬币+自动升级。
         """
-        times=1
+        times=resetCycle
+        if (self.reloadGame):
+            times=max(reloadCycle,times)
         if (self.policys):
             times=max(policyCycle,times)
         for i in range(1,times+1):
@@ -351,12 +373,16 @@ class Mission():
                 self.wait(500)
             if (i%policyCycle==0 and self.policys):
                 self.upgradePolicys()
-
+            if (i%resetCycle==0):
+                self.reset()
+                
     def autoTrain(self):
         """
         自动收货+自动收取硬币+自动升级。收集所有火车。
         """
-        times=1
+        times=resetCycle
+        if (self.reloadGame):
+            times=max(reloadCycle,times)
         if (self.policys):
             times=max(policyCycle,times)
         for i in range(1,times+1):
@@ -370,14 +396,16 @@ class Mission():
 
             if (i%policyCycle==0 and self.policys):
                 self.upgradePolicys()
+            if (i%resetCycle==0):
+                self.reset()
 
     def autoTrainYellowOnly(self):    
         """
         自动收货+自动收取硬币+自动升级。只收史诗级建筑的火车。
         """
-        times=1
+        times=resetCycle
         if (self.reloadGame):
-            times=reloadCycle
+            times=max(reloadCycle,times)
         if (self.policys):
             times=max(policyCycle,times)
         for i in range(1,times+1):
@@ -405,7 +433,8 @@ class Mission():
                 self.wait(clickInterval)
             if (i%policyCycle==0 and self.policys):
                 self.upgradePolicys()
-
+            if (i%resetCycle==0):
+                self.reset()
 
 
 
