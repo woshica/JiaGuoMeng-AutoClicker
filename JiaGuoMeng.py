@@ -343,7 +343,7 @@ class Mission():
             buildings = [0,1,2,3,4,5,6,7,8]
             exchangedBuildings = [i for i in buildings if not self.epicBuildings.count(i)]
             self.click(pos["otherPos"]["openUpgrade"])
-            self.wait(clickInterval)
+            self.wait(clickInterval * 3)
             for i in range(len(exchangedBuildings)):
                 self.exchange(exchangedBuildings[i], 0)
                 self.wait(upgradeInterval)
